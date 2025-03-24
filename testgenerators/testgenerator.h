@@ -54,12 +54,6 @@ namespace testgenerator
         virtual string toJSON(T) = 0;
 
         virtual T readFromJSONFile(string) = 0;
-
-        virtual void writeToFile(string, string);
-
-        virtual void deleteDirectoryContents(const std::filesystem::path &);
-
-        virtual void writeAllTestsToFile();
     };
 
 } // namespace testgenerator

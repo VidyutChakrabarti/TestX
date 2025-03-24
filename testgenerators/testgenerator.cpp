@@ -47,7 +47,7 @@ namespace testgenerator
 
     template <typename T>
 
-    set<T> &TestGenerator<T>::generateTests(set<unsigned int> &dummyTargets)
+    set<T> &TestGenerator<T>::generateTestings(set<unsigned int> &dummyTargets)
     {
 
         // In this revised version, we ignore dummyTargets and rely on gcov.
@@ -65,8 +65,6 @@ namespace testgenerator
             {
 
                 deleteTest(t);
-
-                t = generateTest();
             }
 
             callPUT(t);
@@ -74,7 +72,7 @@ namespace testgenerator
             testcases.insert(t);
         }
 
-        return testcases;
+        return testcase;
     }
 
     template <typename T>
@@ -111,7 +109,7 @@ namespace testgenerator
 
     template <typename T>
 
-    void TestGenerator<T>::writeToFile(string s, string fname)
+    void TestGenerator<T>::writToFile(string s, string fname)
     {
 
         ofstream fout(fname);
