@@ -43,3 +43,9 @@ graph.o: graph.cpp graph.h
 	$(COMPILE_BASE) graph.cpp
 
 
+
+user_function.o: user_function.cpp user_function.h graph.h
+
+	$(COMPILE_GCOV) user_function.cpp
+
+

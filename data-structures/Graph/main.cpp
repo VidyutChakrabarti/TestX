@@ -15,7 +15,7 @@ int main()
 
     // The dummy targets set is not used now.
 
-    set<unsigned int> Targets;
+    set<unsigned int> dummyTargets;
 
     set<Graph *> &tests = testGenerator.generateTests(dummyTargets);
 
