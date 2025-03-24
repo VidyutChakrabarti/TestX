@@ -46,6 +46,9 @@ graph.o: graph.cpp graph.h
 
 user_function.o: user_function.cpp user_function.h graph.h
 
-	$(COMPILE_GCOV) user_function.cpp
+	$(COMPILE_BASE) user_function.cpp
 
+clean:
+
+	rm -f *.o graphtg *.gcda *.gcno *.gcov
 

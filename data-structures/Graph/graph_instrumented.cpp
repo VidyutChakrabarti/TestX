@@ -107,8 +107,6 @@ set<int> Graph::dfs(const vector<vector<int>> &matrix, int start_node)
     return component;
 }
 
-// function to find the connected node sets after intermediate random generation of graph
-
 vector<set<int>> Graph::connected_components(const vector<vector<int>> &matrix)
 
 {
@@ -200,44 +198,4 @@ void Graph::print_all_nodes()
     }
 
     cout << endl;
-}
-
-void sum_of_all_edges(Graph &g)
-
-{
-
-    CoverageLogger::getInstance()->log(1u);
-
-    vector<vector<float>> weights = g.weights;
-
-    int V = weights.size(); // Number of vertices in the graph
-
-    const float INF = numeric_limits<float>::infinity();
-
-    float total_weight_sum = 0.0;
-
-    for (int i = 0; i < V; ++i)
-
-    {
-
-        CoverageLogger::getInstance()->log(2u);
-
-        for (int j = i + 1; j < V; ++j)
-
-        {
-
-            CoverageLogger::getInstance()->log(3u);
-
-            if (weights[i][j] != INF)
-
-            {
-
-                CoverageLogger::getInstance()->log(4u);
-
-                total_weight_sum += weights[i][j];
-            }
-        }
-    }
-
-    cout << "Total Weight: " << total_weight_sum << "/n";
 }

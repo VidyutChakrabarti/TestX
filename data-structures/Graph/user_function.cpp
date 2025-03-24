@@ -7,8 +7,6 @@ using namespace std;
 void user_function(Graph *g)
 {
 
-    // Print a basic message (covers line 1)
-
     cout << "User Function: Testing full coverage." << endl;
 
     // Perform a simple operation that will always execute (covers line 2)
