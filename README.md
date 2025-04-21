@@ -26,3 +26,8 @@ make
 ```
 It will auto read the testcases previosuly generated and test the cases in your function to generate a gcov report of line and branch coverage.
 
+4. If you wish to test another function, first cleanup from the data-structures directory and also the test directory, it will auto remove the compiled files and the reports generated.:
+```bash
+make clean
+```
+
