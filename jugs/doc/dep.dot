@@ -1,0 +1,27 @@
+digraph dep {
+  P_isNew -> S_eq;
+  P_isNew -> P_isNew;
+  P_empty -> S_State2;
+  P_empty -> setContent;
+  P_fill -> S_State2;
+  P_fill -> setContent;
+
+  P_transfer -> S_State_2;
+  P_transfer -> P_min;
+  P_finishUp -> S_getContent;
+  P_finishUp -> P_empty;
+
+  P_singleStep -> P_empty;
+  P_singleStep -> P_finishUp;
+  P_singleStep -> S_destruct;
+  P_singleStep -> P_fill;
+  P_singleStep -> P_isNew;
+  P_singleStep -> P_finishUp;
+  P_singleStep -> P_transfer;
+
+  P_go -> P_singleStep;
+  P_go ->	P_getTrace;
+  P_go ->	S_print;
+
+  readInput -> P_Process;
+}
