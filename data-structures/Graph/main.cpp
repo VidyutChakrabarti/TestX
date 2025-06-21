@@ -3,15 +3,14 @@
 #include "graphtg.h"
 
 using namespace std;
+using namespace testgenerator;
 
 int main() {
     srand(time(NULL));
-    Graphtg_userfunction testGenerator;
-    // The dummy targets set is not used now.
-    set<unsigned int> dummyTargets;
-    set<Graph*> &tests = testGenerator.generateTests(dummyTargets);
+    Graphtg testGenerator;
+    set<unsigned int> dummyTargets; // Not used, but required by interface
+    set<Graph*>& tests = testGenerator.generateTests(dummyTargets);
     testGenerator.writeAllTestsToFile();
-    cout << "# tests generated = " << tests.size() << endl;
+    cout << "#tests = " << tests.size() << endl;
     return 0;
 }
-

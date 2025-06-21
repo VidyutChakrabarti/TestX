@@ -11,29 +11,24 @@ using namespace testgenerator;
 class Graphtg : public TestGenerator<Graph *>
 {
 protected:
-    // Pure virtual—each subclass must define how to “put” (i.e. execute) the test.
-    virtual void callPUT(Graph *) = 0;
+    virtual void callPUT(Graph *) override;
+    virtual float getCoverage() override;
 public:
     static const unsigned int MAXTESTCOUNT;
     unsigned int count = 0;
+    Graphtg();
     virtual ~Graphtg();
-    virtual Graph *generateTest();
+    virtual Graph *generateRandomTest() override;
+    virtual vector<Graph*> generateTest(Graph* base) override;
     virtual void deleteTest(Graph *);
-    // Modified to check gcov-based coverage.
-    virtual bool toContinue();
+    virtual bool toContinue() override;
     virtual string toString(Graph *);
     virtual string toJSON(Graph *);
     virtual Graph *readFromJSONFile(string);
     virtual void writeToFile(string s, string fname);
     virtual void deleteDirectoryContents(const std::filesystem::path &dir);
     virtual void writeAllTestsToFile();
-};
-
-class Graphtg_userfunction : public Graphtg
-{
-protected:
-    void callPUT(Graph *);
+    virtual Graph* deepCopy(Graph* g) override;
 };
 
 #endif
-

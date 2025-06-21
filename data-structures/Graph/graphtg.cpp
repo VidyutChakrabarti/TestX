@@ -1,6 +1,7 @@
 #include "graphtg.h"
 #include "user_function.h"
 #include "valuegenerators.h"
+#include "graphmutator.h"
 #include <sstream>
 #include <cstdio>
 #include <cstdlib>
@@ -12,13 +13,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <exception>
 
 using namespace std;
 using namespace testgenerator;
 
-
 const unsigned int Graphtg::MAXTESTCOUNT = 20;
+
+Graphtg::Graphtg() {
+    setMutator(new GraphMutator());
+}
 
 Graphtg::~Graphtg() {
     for (auto &t : testcases) {
@@ -26,22 +30,17 @@ Graphtg::~Graphtg() {
     }
 }
 
-// Generate a new Graph test case.
-Graph* Graphtg::generateTest() {
+Graph* Graphtg::generateRandomTest() {
     Graph* g = new Graph();
     FloatGenerator fg;
     IntGenerator ig;
     StringGenerator sg;
 
-    // Choose number of nodes (ensure at least 2).
     g->n = (ig.generate() % 10) + 2;
-
-    // Resize vectors.
     g->graph.resize(g->n, vector<int>(g->n, 0));
     g->weights.resize(g->n, vector<float>(g->n, numeric_limits<float>::infinity()));
     g->nodes.resize(g->n, nullptr);
 
-    // Create sanitized graph nodes (alphanumeric only).
     auto sanitizeString = [](const string& str) -> string {
         string sanitized;
         for (char c : str) {
@@ -58,7 +57,6 @@ Graph* Graphtg::generateTest() {
         g->nodes[i] = new Graphnode(sanitizedString.empty() ? "Node" + to_string(i) : sanitizedString);
     }
 
- 
     for (int i = 0; i < g->n; ++i) {
         for (int j = 0; j < g->n; ++j) {
             if (i == j) {
@@ -77,7 +75,6 @@ Graph* Graphtg::generateTest() {
         }
     }
 
-    
     vector<set<int>> connected_sets = g->connected_components(g->graph);
     while (connected_sets.size() > 1) {
         int parent_set_index = ig.generate() % connected_sets.size();
@@ -99,19 +96,30 @@ Graph* Graphtg::generateTest() {
     return g;
 }
 
+vector<Graph*> Graphtg::generateTest(Graph* base) {
+    vector<Graph*> result;
+    if (!mutator) return result;
+    auto mutations = mutator->getMutations(base);
+    for (auto& mutation : mutations) {
+        try {
+            Graph* mutated = mutation(deepCopy(base));
+            result.push_back(mutated);
+        } catch (...) {
+            // If mutation fails, skip this mutation
+        }
+    }
+    return result;
+}
 
 void Graphtg::deleteTest(Graph* g) {
     delete g;
 }
 
-
 extern "C" void __gcov_dump(void);
 
-
-static float get_coverage_percentage() {
+float Graphtg::getCoverage() {
     struct stat st;
     if (stat("user_function.gcda", &st) != 0) {
-        // gcda file doesn't exist yet; no coverage data is available.
         return 0.0;
     }
     FILE* pipe = popen("gcov -b user_function.cpp", "r");
@@ -122,8 +130,6 @@ static float get_coverage_percentage() {
         result += buffer;
     }
     pclose(pipe);
-    
-    // Use regex to find "Lines executed:XX.XX%"
     regex re("Lines executed:\\s*(\\d+\\.\\d+)%");
     smatch match;
     if (regex_search(result, match, re)) {
@@ -137,10 +143,9 @@ bool Graphtg::toContinue() {
     if (count >= MAXTESTCOUNT) {
         return false;
     }
-    
-    float coverage = get_coverage_percentage();
+    float coverage = getCoverage();
     cout << "Current gcov coverage for user_function.cpp: " << coverage << "%" << endl;
-    if (coverage >= 90.0) {
+    if (coverage == 100.0) {
         return false;
     }
     count++;
@@ -169,7 +174,6 @@ string Graphtg::toJSON(Graph* g) {
     string edges = "\"Graph\" : [";
     string w = "\"Weights\" : [";
     for (unsigned int c = 0; c < n; c++) {
-        
         string nodeData = g->nodes[c]->data;
         replace(nodeData.begin(), nodeData.end(), '"', '\''); 
         s += "{\"" + to_string(c) + "\" : \"" + nodeData + "\"}";
@@ -245,8 +249,26 @@ void Graphtg::writeAllTestsToFile() {
     }
 }
 
-void Graphtg_userfunction::callPUT(Graph* g) {
-    user_function(g);
-    __gcov_dump(); 
+Graph* Graphtg::deepCopy(Graph* g) {
+    Graph* copy = new Graph();
+    copy->n = g->n;
+    copy->graph = g->graph;
+    copy->weights = g->weights;
+    for (auto node : g->nodes) {
+        copy->nodes.push_back(new Graphnode(node->data));
+    }
+    return copy;
 }
 
+void Graphtg::callPUT(Graph* g) {
+    try {
+        user_function(g);
+        __gcov_dump();
+    } catch (const std::exception& e) {
+        cerr << "Exception in user_function: " << e.what() << endl;
+        throw;
+    } catch (...) {
+        cerr << "Unknown exception in user_function." << endl;
+        throw;
+    }
+}
