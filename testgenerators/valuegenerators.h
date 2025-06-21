@@ -41,6 +41,4 @@ class StringGenerator : public ValueGenerator<string> {
 
 
 } // namespace testgenerator
-
-#include "valuegenerators.cpp"
 #endif

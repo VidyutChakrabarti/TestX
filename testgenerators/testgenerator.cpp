@@ -1,20 +1,37 @@
 #ifndef TESTGENERATOR_CPP
 #define TESTGENERATOR_CPP
 
-#include <filesystem>
-#include <iostream>
-#include <set>
-#include <vector>
-#include <fstream>
 #include "testgenerator.h"
-
-using namespace std;
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <exception>
+#include <unordered_set>
 
 namespace testgenerator {
 
-template <typename T> 
-TestGenerator<T>::TestGenerator() {
+using namespace std;
+
+template <typename T>
+TestGenerator<T>::TestGenerator() : mutator(nullptr) {}
+
+template <typename T>
+TestGenerator<T>::~TestGenerator() {
+    if (mutator) delete mutator;
 }
+
+template <typename T>
+void TestGenerator<T>::setMutator(Mutator<T>* m) {
+    if (mutator) delete mutator;
+    mutator = m;
+}
+
+template <typename T>
+bool TestGenerator<T>::isValid(T) { return true; }
+
+template <typename T>
+T TestGenerator<T>::deepCopy(T t) { return t; }
 
 template <typename T> 
 bool TestGenerator<T>::ends_with(const string & value, const string & ending) {
@@ -24,29 +41,78 @@ bool TestGenerator<T>::ends_with(const string & value, const string & ending) {
     return equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-template <typename T> 
-TestGenerator<T>::~TestGenerator() {}
-
-template <typename T> 
-set<T>& TestGenerator<T>::generateTests(set<unsigned int>& dummyTargets) {
-    // we ignore dummyTargets and rely on gcov.
-    cout << "Generating tests using user-defined function ..." << endl;
-    testcases.clear();
-    while(toContinue()) {
-        T t = generateTest();
-        while(!isValid(t)) {
-            deleteTest(t);
-            t = generateTest();
+template <typename T>
+vector<T> TestGenerator<T>::generateTest(T base) {
+    vector<T> result;
+    if (!mutator) return result;
+    auto mutations = mutator->getMutations(base);
+    for (auto& mutation : mutations) {
+        try {
+            T mutated = mutation(deepCopy(base));
+            result.push_back(mutated);
+        } catch (...) {
+            // If mutation fails, skip this mutation
         }
-        callPUT(t);
-        testcases.insert(t);
     }
-    return testcases;
+    return result;
 }
 
-template <typename T> 
-bool TestGenerator<T>::isValid(T val) {
-    return true;
+template <typename T>
+set<T>& TestGenerator<T>::generateTests(set<unsigned int>&) {
+    cout << "Generating tests using guided mutation ..." << endl;
+    testcases.clear();
+
+    // 1. Start with a random test case as seed
+    T seed = generateRandomTest();
+    queue<T> q;
+    q.push(seed);
+
+    unordered_set<string> seen_coverage;
+    //float threshold = 90.0f;
+
+    while (!q.empty() && toContinue()) {
+        T t = q.front(); q.pop();
+        if (!isValid(t)) {
+            deleteTest(t);
+            continue;
+        }
+
+        bool error_in_put = false;
+        try {
+            callPUT(t);
+        } catch (const exception& e) {
+            cerr << "Error in callPUT: " << e.what() << endl;
+            error_in_put = true;
+        } catch (...) {
+            cerr << "Unknown error in callPUT." << endl;
+            error_in_put = true;
+        }
+
+        float coverage = getCoverage();
+        string cov_str = to_string(coverage);
+
+        // Only keep if new coverage or queue is empty
+        if (!error_in_put && (seen_coverage.find(cov_str) == seen_coverage.end() || q.empty())) {
+            testcases.insert(t);
+            seen_coverage.insert(cov_str);
+
+            // Apply all mutations and enqueue all results
+            vector<T> mutated_cases = generateTest(t);
+            for (T m : mutated_cases) {
+                if (isValid(m)) {
+                    q.push(m);
+                } else {
+                    deleteTest(m);
+                }
+            }
+        } else {
+            deleteTest(t);
+        }
+
+        //if (coverage >= threshold) break;
+    }
+    getCoverage();
+    return testcases;
 }
 
 namespace fs = std::filesystem;
@@ -70,16 +136,16 @@ void TestGenerator<T>::writeToFile(string s, string fname) {
 }
 
 template <typename T>
-void TestGenerator<T>::deleteDirectoryContents(const fs::path& dir) {
-    for (const auto& entry : fs::directory_iterator(dir))
-        fs::remove_all(entry.path());
+void TestGenerator<T>::deleteDirectoryContents(const filesystem::path& dir) {
+    for (const auto& entry : filesystem::directory_iterator(dir))
+        filesystem::remove_all(entry.path());
 }
 
 template <typename T>
 void TestGenerator<T>::writeAllTestsToFile() {
     string dirName = "test/testcases/";
-    fs::create_directories(dirName);
-    TestGenerator<T>::deleteDirectoryContents(dirName);
+    filesystem::create_directories(dirName);
+    deleteDirectoryContents(dirName);
     unsigned int i = 1;
     for(const auto& t : testcases) {
         string json = toJSON(t);
@@ -91,7 +157,7 @@ void TestGenerator<T>::writeAllTestsToFile() {
     }
 }
 
+
 } // namespace testgenerator
 
 #endif
-
