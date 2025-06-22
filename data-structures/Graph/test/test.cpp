@@ -9,7 +9,7 @@ using namespace testgenerator;
 extern "C" void __gcov_dump(void);
 
 int main() {
-    Graphtg_userfunction testGenerator;
+    Graphtg testGenerator;
     vector<string> fileNames = testGenerator.getFileList("testcases");
     for (auto &fileName : fileNames) {
         cout << "Running test from file: " << fileName << endl;
