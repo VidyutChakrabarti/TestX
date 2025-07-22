@@ -1,21 +1,30 @@
 INC=../../testgenerators/
-LIB="../../testgenerators/"
-COMPILE=g++ -g -c -I $(INC)
-lltg : main.o lltg.o $(INC)/libtg.a linkedlist_instrumented.o
-	g++ -I $(INC) -L$(LIB) linkedlist_instrumented.o lltg.o main.o -ljsoncpp -ltg -o lltg
+LIB=../../testgenerators/
+GCOV_FLAGS=-fprofile-arcs -ftest-coverage
 
-$(INC)/libtg.a :
-	make -C $(INC) libtg.a;
+COMPILE_BASE=g++ -g -c -I $(INC)
+COMPILE_GCOV=g++ -g -c -I $(INC) $(GCOV_FLAGS)
+
+lltg: main.o lltg.o llmutator.o linkedlist.o user_function.o $(INC)/libtg.a
+	g++ -I $(INC) -L $(LIB) linkedlist.o lltg.o llmutator.o user_function.o main.o -ljsoncpp -ltg -lgcov -o lltg
+
+$(INC)/libtg.a:
+	make -C $(INC) libtg.a
 
 lltg.o: lltg.cpp lltg.h
-	$(COMPILE) lltg.cpp
+	$(COMPILE_BASE) lltg.cpp
 
-linkedlist_instrumented.o : linkedlist_instrumented.cpp linkedlist.h
-	$(COMPILE) linkedlist_instrumented.cpp
+llmutator.o: llmutator.cpp llmutator.h
+	$(COMPILE_BASE) llmutator.cpp
 
-main.o : main.cpp
-	$(COMPILE) main.cpp
+linkedlist.o: linkedlist.cpp linkedlist.h
+	$(COMPILE_BASE) linkedlist.cpp
+
+user_function.o: Userfunctions/user_function.cpp Userfunctions/user_function.h linkedlist.h
+	$(COMPILE_GCOV) Userfunctions/user_function.cpp -o user_function.o
+
+main.o: main.cpp
+	$(COMPILE_BASE) main.cpp
 
 clean:
-	rm *.o
-	rm lltg
+	del *.o lltg.exe *.gcda *.gcno *.gcov 2>nul || true
